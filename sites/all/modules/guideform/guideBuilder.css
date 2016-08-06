@@ -1,0 +1,449 @@
+/*
+
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+*/
+/*
+    Created on : Feb 1, 2016, 8:48:50 PM
+    Author     : Alejandro
+*/
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 100px;
+    width:800px
+}
+td {
+    text-align: center;
+    vertical-align: middle;
+
+}
+.skillInactive:hover{
+    background-color: khaki;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.skillText{
+    width: auto;
+}
+.skillInactive{
+    width: 30px;
+    height: 31px;
+}
+.skillActive{
+    width: 30px;
+    height: 31px;
+    background-color: cadetblue;
+    border-radius: 50%;
+    cursor:pointer;
+}
+div.masteriesContainer{
+    position: relative;
+    width: 600px;
+    height : 400px;
+    z-index: 0;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+div.masteriesTree{
+    width: 190px;
+    height : 350px;
+    border : 1px solid;
+    background-color: black;
+}
+
+body{
+    overflow:auto;
+}
+.ferocity,.cunning,.resolve {
+    display: inline-block;
+}
+
+.masteriesTypeTitle{
+    width: 190px;
+    height : 35px;
+    font-family: arial, sans-serif;
+    color: white;
+    background-color: #000000;
+    border: 1px solid #0011FF;
+    font-size: 18px;
+    word-spacing: 2.6pt;
+    text-align: center;
+}
+
+.masteriesLevelContainer{
+    position: absolute;
+    width: 190px;
+    height : 300px;
+}
+
+.masteriesLevel{
+    border: 1px solid black;
+    display: block;
+    width: 190px;
+    height: 48px;
+    text-align: center;
+    margin: 0px auto;
+    padding: 4px 0px;
+}
+
+.masteryIconContainer{
+    position: absolute;
+    padding: 0px 2px;
+    width: 48px;
+    height: 48px;
+}
+
+.masteryImg{
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid green;
+    display: none;
+    image-rendering: pixelated; 
+    background-size: 1000% 500% !important;
+
+}
+.masteryImgGray{
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid black;
+    background-size: 1000% 500% !important;
+}
+
+.lvl1{
+    display: block;
+}
+
+.lvl-1{
+    display: none;
+}
+
+
+.left{
+    left:0px;
+}
+.right{
+    right: 0px;
+}
+.center{
+    position: relative;
+    display: inline-block;
+}
+.counter{
+    position: absolute;
+    right: -2px;
+    bottom: 0px;
+    border: 1px solid #a1a2a2;
+    color: #fff;
+    padding: 3px 5px 0 5px;
+    background-color: #262626;
+    font-size: 8px;
+    line-height: 8px;
+    z-index: 2;
+}
+
+.seccionRunas{
+    margin-top: 13px;
+    height : 400px;
+    max-width: 100%;
+    border: 1px solid black;
+}
+.runesSect{
+    position: relative;
+    width: 33.33%;
+    height: 100%;
+    border: 1px solid black;
+}
+.runesSectParent{
+
+}
+
+.runeTypeDiv{
+    position: relative;
+    width: 100%;
+    height: 25%;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 100px;
+    background-color: yellow;
+    border: 1px solid black;
+    cursor: pointer;
+}
+
+.runeTypeInfo{
+    overflow: hidden;
+    width : 100%;
+    height : 15%;
+    cursor:pointer;
+}
+.runeTypeIcon{
+    position:relative;
+    width : 25%;
+    height : 100%;
+    text-align: center;
+    border: 1px solid black;
+    float:left;
+}
+.runeTypeCounter{
+    position: absolute;
+    top: 20%;
+    left: 10%;
+    vertical-align: middle;
+    display: inline-block;
+    font-size: 25px;
+}
+.runeTypeImg{
+    position: relative;
+    width: 48px;
+    height : 48px;
+    display: inline-block;
+    margin-top: 4%;
+    background-size: 1000% 200% !important;
+
+}
+.runeTypeText{
+    width : 75%;
+    height : 100%;
+    padding-top: 3px;
+    float : left;
+    text-align: center;
+    border: 1px solid black;
+}
+.runeTypeContainer{
+    overflow: auto;
+    max-width : 100%;
+    max-height: 100%;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: context-menu;
+}
+.runesChosen{
+    overflow: auto;
+    max-width : 100%;
+    max-height: 100%;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: context-menu;
+}
+.runeTypeSelector{
+    overflow: hidden;
+    cursor: context-menu;
+}
+
+.runeTypeSelector, .runeTypeContainer, .runesChosen{
+    float: left;
+}
+
+.runesViewContainer{
+   width: auto;
+   height : auto;
+   margin: 15px;
+}
+
+.runeViewContainer{
+    width: 450px;
+    height: 55px;
+    display: block;
+}
+
+.runeViewLeft{
+    width: 25%;
+    height: 100%;
+    text-align: center;
+    display: inline-block; 
+    vertical-align: middle;
+
+}
+
+.runeViewRight{
+    width: 74%;
+    height: 100%;
+    text-align: center;
+    display: inline-block;  
+    vertical-align: middle;
+    font-family: Gill Sans, Gill Sans MT, sans-serif;
+
+}
+.runeViewRight > p {
+    padding: 0.9% 0;
+    margin:0;
+}
+
+.runeViewNum{
+    text-align: center;
+    display: inline-block;
+    vertical-align: top;
+    padding: 6% 9%;
+    font-size: 21px;
+    width: auto;
+    font-family: Gill Sans, Gill Sans MT, sans-serif;
+}
+
+.smallIcon{
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
+}
+
+.bigIcon{
+     width: 48px;
+    height: 48px;
+    margin: 0 auto;
+}
+
+
+
+.sombra{
+    position: relative;
+    -moz-box-shadow:    inset 0 0 10px #000000;
+    -webkit-box-shadow: inset 0 0 10px #000000;
+    box-shadow:         inset 0 0 10px #000000;
+}
+
+
+.itemIcon{
+    cursor: pointer;
+}
+
+.clearfix{
+    clear: both;
+}
+
+
+.selectorsContainer{
+    width: 445px;
+    height: 65px;
+    border: 2px solid darkslategray;
+    margin-bottom: 20px;
+}
+
+.selectorContainer{
+    display: inline-block;
+    height: 56px;
+    width: 56px;
+    padding: 2.5px;
+    margin: 2px 1.5px;
+    border: 1px solid red;
+    cursor: pointer;
+}
+
+.ddForItems, .ddForSpells{
+    width: 900px;
+    padding: 18px 10px;
+}
+
+
+/******************************************************SCROLL THEN FIX ***********************************************/
+
+.wrap {
+  width: 100%;
+  border: 1px solid #ccc;
+  height: 768px;
+  overflow: auto;
+  position: relative;
+  
+  
+}
+
+.top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  z-index: 10;
+}
+.top-header .menu-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 18px 20px;
+}
+.fix-search .top-header {
+  background: #eee;
+}
+
+.search {
+  position: absolute;
+  top: 125px;
+  left: 20px;
+  right: 20px;
+  text-align: center;
+}
+.search input {
+  width: 265px;
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 15px;
+  -webkit-transition: width 0.2s;
+  transition: width 0.2s;
+  -webkit-appearance: none;
+}
+.fix-search .search {
+  position: fixed;
+  text-align: center;
+  top: 10px;
+  z-index: 10;
+}
+/*.fix-search .search button {
+  height: 20px;
+} */
+
+.top {
+  height: 50px;
+  padding-top: 20px;
+}
+
+.hero {
+  width: 200px;
+  height: 100px;
+  background: #ccc;
+  margin: 0 auto;
+}
+
+main {
+  padding: 0 20px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+      -ms-flex-wrap: wrap;
+          flex-wrap: wrap;
+  -webkit-box-pack: justify;
+  -webkit-justify-content: space-between;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+}
+main div {
+  width: 125px;
+  height: 80px;
+  background: #ccc;
+  margin: 0 0 20px 0;
+}
+
+
+/***********************************************HEADER**************************************************/
+
+

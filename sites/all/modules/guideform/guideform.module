@@ -1,0 +1,1425 @@
+
+
+<?php
+
+//
+//$urlChamps = "http://ddragon.leagueoflegends.com/cdn/6.15.1/data/en_US/champion.json";
+//$requestChamps = drupal_http_request($urlChamps);
+//$objChamps = drupal_json_decode($requestChamps->data);
+
+function guideform_field_info() {
+  return array(
+//campo para maestrias
+    'field_masteries' => array(
+      'label' => t('Masteries'),
+      'description' => t('Este campo guarda la información del árbol de maestrías'),
+      'default_widget' => 'field_masteries_widget',
+      'default_formatter' => 'field_masteries_formatter',
+    ),
+    //campo para runas
+    'field_runes' => array(
+      'label' => t('Runes'),
+      'description' => t('Este campo guarda la información de las runas'),
+      'default_widget' => 'field_runes_widget',
+      'default_formatter' => 'field_runes_formatter',
+    ),
+    //campo para habilidades
+    'field_skills' => array(
+      'label' => t('Skills'),
+      'description' => t('Este campo guarda la información de las habilidades'),
+      'default_widget' => 'field_skills_widget',
+      'default_formatter' => 'field_skills_formatter',
+    ),
+    //campo para la full build
+    'field_fullItems' => array(
+      'label' => t('Full Items'),
+      'description' => t('Este campo guarda la información de la build completa'),
+      'default_widget' => 'field_fullItems_widget',
+      'default_formatter' => 'field_fullItems_formatter',
+    ),
+    //campo para items iniciales
+    'field_startItems' => array(
+      'label' => t('Starting Items'),
+      'description' => t('Este campo guarda la información de los items iniciales'),
+      'default_widget' => 'field_startItems_widget',
+      'default_formatter' => 'field_startItems_formatter',
+    ),
+    //campo para hechizos de invocador (spells)
+    'field_spells' => array(
+      'label' => t('Summoner Spells'),
+      'description' => t('Este campo guarda la información de los hechizos de invocador'),
+      'default_widget' => 'field_spells_widget',
+      'default_formatter' => 'field_spells_formatter',
+    ),
+  );
+}
+
+//function guideform_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, $errors) {
+//  foreach ($items as $delta => $item) {
+//    foreach (array('fullItems', 'startItems', 'spells') as $column) {
+//      if (!empty($item[$column])) {
+//        $fieldName = $instance['field_name'];
+//        switch ($column) {
+//          case 'fullItems':
+//            if (drupal_strlen($item[$column]) > 200) {
+//              $message = t("The field {$fieldID} is too big");
+//            }
+//            break;
+//          case 'startItems':
+//            if (drupal_strlen($item[$column]) > 100) {
+//              $message = t("The field {$fieldID} is too big");
+//              //print_r("Soy message: $message");
+//            }
+//            break;
+//          case 'spells':
+//            if (drupal_strlen($item[$column]) > 50) {
+//              $message = t("The field {$fieldID} is too big");
+//            }
+//            break;
+//        }
+//        if (isset($message)) {
+//          $errors[$field['field_name']][$langcode][$delta][] = array(
+//            'error' => "text_excedeed_length",
+//            'message' => $message,
+//          );
+//          dpm($errors); //this prints correctly, uses the same format of other implementations of this hook
+//        }
+//      }
+//    }
+//  }
+//}
+
+
+function guideform_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
+  foreach ($items as $delta => $item) {
+// @todo Length is counted separately for summary and value, so the maximum
+//   length can be exceeded very easily.
+    foreach (array('maestrias', 'runas', 'habilidades', 'fullItems', 'startItems', 'hechizos') as $column) {
+      if (!empty($item[$column])) {
+        $fieldName = $instance['field_name'];
+//print_r("estoy entrando al error");
+//   if (!empty($field['settings']['max_length']) && drupal_strlen($item[$column]) > $field['settings']['max_length']) {
+        switch ($column) {
+          case 'runas':
+          case 'habilidades':
+          case 'maestrias':
+//print_r("did i make it?");
+            if (drupal_strlen($item[$column]) > 200) {
+              $message = t("Error con el field: {$fieldName}, excedió tamaño permitido");
+            }
+            break;
+          case 'fullItems':
+          case 'startItems':
+          case 'hechizos':
+            if (drupal_strlen($item[$column]) > 50) {
+              $message = t("Error con el field: {$fieldName}, excedió tamaño permitido");
+//print_r("Soy message: $message");
+            }
+            break;
+        }
+        if (isset($message)) {
+          $errors[$field['field_name']][$langcode][$delta][] = array(
+            'error' => "text_excedeed_length",
+            'message' => $message,
+          );
+          dpm($errors);
+        }
+// if (!preg_match("/^[a-z][=,a-zA-Z0-9]*$/", $item[$column])) {
+        //         print_r("entre");
+        if (preg_match("/^[a-zA-Z0-9=,-]+$/", $item[$column]) == 0) {
+          $errors[$field['field_name']][$langcode][$delta][] = array(
+            'error' => "field_unexpected_char",
+            'message' => "Error con el field: {$fieldName}, se intentó ingresar carácter inválido",
+          );
+        }
+      }
+    }
+  }
+}
+
+function guideform_field_is_empty($item, $field) {
+  $temp = array_keys($field['columns']);
+  $key = array_shift($temp);
+  return empty($item[$key]);
+}
+
+function guideform_field_widget_settings_form($field, $instance) {
+  $widget = $instance['widget'];
+  $settings = $widget['settings'];
+  $form = array();
+  if ($widget['type'] == 'field_text_long_guide') {
+    $form['rows'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Rows'),
+      '#default_value' => $settings['rows'],
+      '#required' => TRUE,
+      '#element_validate' => array('element_validate_integer_positive'),
+    );
+  }
+  return $form;
+}
+
+function guideform_field_widget_info() {
+  return array(
+    'field_masteries_widget' => array(
+      'label' => t('Maestrías Widget'),
+      'field types' => array('field_masteries'),
+    ),
+    'field_runes_widget' => array(
+      'label' => t('Runas Widget'),
+      'field types' => array('field_runes'),
+    ),
+    'field_skills_widget' => array(
+      'label' => t('Skills Widget'),
+      'field types' => array('field_skills'),
+    ),
+    'field_fullItems_widget' => array(
+      'label' => t('Full Items Widget'),
+      'field types' => array('field_fullItems'),
+    ),
+    'field_startItems_widget' => array(
+      'label' => t('Starting Items Widget'),
+      'field types' => array('field_startItems'),
+    ),
+    'field_spells_widget' => array(
+      'label' => t('Spells Widget'),
+      'field types' => array('field_spells'),
+    ),
+    'field_text_long_guide' => array(
+      'label' => t('Textarea Guia'),
+      'field types' => array('text_long'),
+      'settings' => array('rows' => 5),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+    ),
+  );
+}
+
+//function guideform_form_guia_node_form_alter($form, $form_state, $form_id){
+//  $your_field_collection = element_children($form['your_field_collection']['#language']);
+//  foreach ($your_field_collection as $key => $value) {
+//    if (is_numeric($value)) {
+//      $form['your_field_collection'][LANGUAGE_NONE][$val]['your_field_collection_field']['#title'] = t('Your new title');
+//      $form['your_field_collection'][LANGUAGE_NONE][$val]['your_field_collection_field']['#title_display'] = 'invisible';
+//    }
+//  }
+//  print_r($form);
+//}
+
+function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+//$value = isset($items[$delta]['maestrias']) ? $items[$delta]['maestrias'] : '';
+  $widget = $element;
+  $widget['#delta'] = $delta;
+  $field_name = $instance['field_name'];
+  switch ($instance['widget']['type']) {
+    case 'field_masteries_widget':
+// $widget['maestrias'] = array(
+      $widget['maestrias'] = $element + array(
+//'#attributes' => array('id' => array($field_name)),
+        '#type' => 'hidden',
+        '#default_value' => '',
+        //  '#prefix' => "<div class=\"masteriesContainer\">
+        '#prefix' => "<div class=\"masteriesContainer\" id=\"$field_name\">
+                        <div class=\"masteriesTree ferocity\">
+                            <div class=\"masteriesTypeTitle\">Ferocidad: 0</div>
+                            <div class=\"masteriesLevelContainer\">
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"101\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6111\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg   lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 0;\">
+                                        </div>
+                                        <div class=\"masteryImgGray   lvl-1\" style=\"background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 0; \">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6114\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg   lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 0;\">
+                                        </div>
+                                        <div class=\"masteryImgGray   lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"102\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6121\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg  \" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 0;\">
+                                        </div>
+                                        <div class=\"masteryImgGray  \" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6122\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray  \" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6123\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"104\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6131\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6134\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"105\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6141\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6142\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"107\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6151\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6154\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"108\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6161\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6162\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6164\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class=\"masteriesTree cunning\">
+                            <div class=\"masteriesTypeTitle\">Astucia: 0</div>
+                            <div class=\"masteriesLevelContainer\">
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"111\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6311\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6312\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"112\">
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6321\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6322\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6323\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"114\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6331\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6332\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 50%;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"115\" >
+                                    <div class=\"masteryIconContainer center\" data-id=\"6342\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6343\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 50%;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"117\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6351\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6352\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"118\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6361\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6362\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6363\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class=\"masteriesTree resolve\">
+                            <div class=\"masteriesTypeTitle\">Valor: 0</div>
+                            <div class=\"masteriesLevelContainer\">
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"121\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6211\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 50%;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\"  data-id=\"6212\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"122\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6221\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6223\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"124\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6231\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6232\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"125\">
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6241\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6242\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"127\">
+                                    <div class=\"masteryIconContainer left\"  data-id=\"6251\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6252\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"128\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6261\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6262\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6263\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 100% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 100% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>",
+        '#attached' => array(
+          'js' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.js'),
+          'css' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.css'),
+        ),
+      );
+      break;
+    case 'field_runes_widget':
+      $widget['runas'] = array(
+        '#type' => 'hidden',
+        '#default_value' => '',
+        '#prefix' => "<div class=\"seccionRunas\" id=\"$field_name\">
+            <div class=\"runesSect runeTypeSelector\">
+                <div class=\"runeTypeDiv quints\" >Quintaesencias
+                </div>
+                <div class=\"runeTypeDiv marks\" >Marcas
+                </div>
+                <div class=\"runeTypeDiv seals\" >Sellos
+                </div>
+                <div class=\"runeTypeDiv glyphs\">Glifos
+                </div>
+            </div>
+            <div class=\"runesSect runeTypeContainer\">
+            </div>
+            <div class=\"runesSect runesChosen\">
+            </div>
+        </div>",
+        '#attached' => array(
+          'js' => array(drupal_get_path('module', 'guideform') . '/runes.js'),
+        ),
+      );
+      break;
+    case 'field_skills_widget':
+      $widget['habilidades'] = array(
+        '#type' => 'hidden',
+        '#default_value' => '',
+        '#prefix' => "<div id=\"$field_name\" class=\"skillsContainer clearfix\">
+            <script type=\"text/javascript\">
+               window.addEventListener(\"load\", function (){
+                       createSkills(\"$field_name\");
+                    });
+            </script>
+        </div>",
+        '#attached' => array(
+          'js' => array(drupal_get_path('module', 'guideform') . '/general.js'),
+        ),
+      );
+      break;
+    case 'field_fullItems_widget':
+      $widget['fullItems'] = array(
+        '#type' => 'hidden',
+        '#default_value' => '',
+        '#prefix' => "<div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer dropdown\">
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 0)\" data-index=\"0\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 1)\" data-index=\"1\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 2)\" data-index=\"2\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 3)\" data-index=\"3\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 4)\" data-index=\"4\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 5)\" data-index=\"5\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadTrinkets('$field_name', 6, 'finish')\" data-index=\"6\" data-toggle=\"dropdown\" ></div>
+                <div class=\"dropdown-menu ddForItems\">
+                    <div class=\"ddSelectorsContainer\"></div>
+                </div>
+            </div>",
+      );
+      break;
+    case 'field_startItems_widget':
+      $widget['startItems'] = array(
+        '#type' => 'hidden',
+        '#default_value' => '',
+        '#prefix' => "<div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer dropdown\">
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 0, 'starting')\" data-index=\"0\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 1, 'starting')\" data-index=\"1\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadTrinkets('$field_name', 2, 'starting')\" data-index=\"2\" data-toggle=\"dropdown\" ></div>
+                <div class=\"dropdown-menu ddForItems\">
+                    <div class=\"ddSelectorsContainer\"></div>
+                </div>
+            </div>",
+      );
+      break;
+    case 'field_spells_widget':
+//dpm($widget);
+      $widget['hechizos'] = array(
+        '#type' => 'hidden',
+        '#default_value' => '',
+        '#prefix' => "<div id=\"$field_name\" class=\"sSpellsContainer selectorsContainer dropdown\">
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionSpells('$field_name', 0)\" data-index=\"0\" data-toggle=\"dropdown\" ></div>
+                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionSpells('$field_name', 1)\" data-index=\"1\" data-toggle=\"dropdown\" ></div>
+                <div class=\"dropdown-menu ddForItems\">
+                    <div class=\"ddSelectorsContainer\"></div>
+                </div>
+            </div>",
+      );
+      break;
+    case 'field_text_long_guide':
+      //print_r($instance['widget']['settings']['rows']);
+      $widget = $element + array(//al ser un text format, se procesa de forma diferente
+//$widget['value'] = array(
+        '#type' => 'textarea',
+        '#rows' => $instance['widget']['settings']['rows'], //se obtiene la informacion de los settings que definimos para el field
+        '#attributes' => array('class' => array('myTextArea')), //clase personalizada, utilizada para manejar los encoded strings para imagenes
+      );
+      $widget['#type'] = 'text_format'; //widget es de tipo formato
+      $widget['#format'] = 'guideshtml'; //ya que este field solo va a ser utilizado en las guias, en dado caso se podria cambiar
+      $widget['#base_type'] = 'textarea';
+      break;
+  }
+  $element = $widget;
+  return $element;
+}
+
+/*
+ * hook_field_formatter_info()
+ *
+ * aqui se declaran todos los custom formatter para los content type 'guides/guias'
+ *
+ */
+
+function guideform_field_formatter_info() { //funcion que defin
+  return array(
+    'field_masteries_formatter' => array(
+      'label' => t('Masteries Formatter'),
+      'field types' => array('field_masteries'),
+    ),
+    'field_runes_formatter' => array(
+      'label' => t('Runes Formatter'),
+      'field types' => array('field_runes'),
+    ),
+    'field_skills_formatter' => array(
+      'label' => t('Skills Formatter'),
+      'field types' => array('field_skills'),
+    ),
+    'field_fullItems_formatter' => array(
+      'label' => t('Full Items Formatter'),
+      'field types' => array('field_fullItems'),
+    ),
+    'field_startItems_formatter' => array(
+      'label' => t('Starting Items Formatter'),
+      'field types' => array('field_startItems'),
+    ),
+    'field_spells_formatter' => array(
+      'label' => t('Spells Formatter'),
+      'field types' => array('field_spells'),
+    ),
+    'field_text_long_guide_formatter' => array(
+      'label' => t('TextArea Guide Formatter'),
+      'field types' => array('text_long'),
+    ),
+  );
+}
+
+function initialize_riot_static_data(&$requestItems, &$requestChamps, &$requestSummoners) {
+  $version = '6.15.1';
+  if (!isset($requestChamps)) {
+    $requestChamps = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/champion.json");
+  }
+  if (!isset($requestItems)) {
+    $requestItems = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/item.json");
+  }
+  if (!isset($requestSummoners)) {
+    $requestSummoners = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/summoner.json");
+  }
+}
+
+//function initialize_json_objects(&$objItems, &$objChamps, &$objSummoners) {
+//  if (!isset($objChamps)) {
+//    $objChamps = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/champion.json");
+//  }
+//  if (!isset($objItems)) {
+//    $objItems = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/item.json");
+//  }
+//  if (!isset($objSummoners)) {
+//    $objSummoners = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/summoner.json");
+//  }
+//}
+
+function parse_long_text_area_guide(&$text) {
+//  static $requestChamps, $requestItems, $requestSummoners;
+//  initialize_riot_static_data($requestItems, $requestChamps, $requestSummoners);
+//  $objChamps = drupal_json_decode($requestChamps->data);
+//  $objItems = drupal_json_decode($requestItems->data);
+//  $objSummoners = drupal_json_decode($requestSummoners->data);
+//  dpm($objChamps);
+//  dpm($objItems);
+//  dpm($objSummoners);
+  $array = str_split($text);
+  $pos = 0;
+  $posFinal = 0;
+  $outputParsed = "";
+//  dpm($array);
+  foreach ($array as $key => $char) {
+    $char = (string) $char;
+    if ($char == "[") {
+      $output = parseBrackets($array, $posFinal, $text);
+//      echo "output:" . $output;
+      if ($output != "") {
+        //$posFinal++;
+        $length = ($posFinal + 2) - $pos;
+        $text = substr_replace($text, $output, $pos, $length);
+        //echo "soy pos inicial:" . $pos . "soy posfinal=" . $posFinal;
+        //echo "milength=" . $length . "--";
+        //echo "Este es mi output!!" . $text;
+        return parse_long_text_area_guide($text);
+        //$pos = $posFinal - 1; //hace que sirva el primero
+        //$pos += 65;
+      }
+    }
+    $pos++;
+    $posFinal = $pos;
+  }
+  $outputParsed = $text;
+  echo "Soy el parsed pue: " . $outputParsed;
+  return $outputParsed;
+}
+
+function parseBrackets($array, &$pos, $text) {
+  $stringTest = "";
+  $posStart = $pos;
+  $outputCustom = "";
+  foreach (array_slice($array, $pos + 1) as $value) {
+    if ($value == "]") {
+      //aqui tiene que ir una funcion que checkee el formato
+      if (isValidFormat($stringTest)) {
+        $tokenarr = explode("/", $stringTest);
+        $type = $tokenarr[0];
+        $id = $tokenarr[1];
+        $outputCustom = get_html_for_img($type, $id);
+      }
+      break;
+    }
+    else if ($value == "[") {
+      break;
+    }
+    else {
+      $pos++;
+      $stringTest .= $value;
+    }
+  }
+  return $outputCustom;
+//  echo "Soy string parseado=" . $stringTest;
+}
+
+function get_html_for_img($type, $id) {
+  $version = '6.15.1';
+  $htmlOutput = "";
+  static $requestChamps, $requestItems, $requestSummoners;
+  initialize_riot_static_data($requestItems, $requestChamps, $requestSummoners);
+  if ($type == "item") {
+    $objItems = drupal_json_decode($requestItems->data);
+    $itemID = intval($id);
+//    $htmlTest = $objItems['data'][$id]['name'];
+//    $posX = $objItems['data'][$id]['image']['x'];
+//    $posy = $objItems['data'][$id]['image']['y'];
+    $full = $objItems['data'][$id]['image']['full'];
+    $imgSrc = "//ddragon.leagueoflegends.com/cdn/" . $version . "/img/item/" . $full;
+    $htmlTest = "<img src=\"{$imgSrc}\" width=\"30\" height=\"30\">";
+    $htmlOutput = $htmlTest;
+    //echo "Hey! vean lo que saque {$htmlTest}";
+  }
+  else if ($type == "champion") {
+    $objChamps = drupal_json_decode($requestChamps->data);
+    $itemID = intval($id);
+    $full = $objChamps['data'][$id]['image']['full'];
+    $imgSrc = "//ddragon.leagueoflegends.com/cdn/" . $version . "/img/champion/" . $full;
+    $htmlTest = "<img src=\"{$imgSrc}\" width=\"30\" height=\"30\" >";
+    $htmlOutput = $htmlTest;
+    //echo "Hey! vean lo que saque {$htmlTest}";
+  }
+  else if ($type == "summoner") {
+    $objSummoners = drupal_json_decode($requestSummoners->data);
+    $itemID = intval($id);
+    $full = $objSummoners['data'][$id]['image']['full'];
+    $imgSrc = "//ddragon.leagueoflegends.com/cdn/" . $version . "/img/spell/" . $full;
+    $htmlTest = "<img src=\"{$imgSrc}\" width=\"30\" height=\"30\" >";
+    $htmlOutput = $htmlTest;
+  }
+  return $htmlOutput;
+}
+
+function isValidFormat($word) { //esta funcion verifica que la palabra corresponda al formato "TipoStr/Codigo"
+  $flag = false;
+  $valid_items = ["3006", "3047", "3111", "3009", "3020", "3117", "3158", "1001", "1004", "1006", "1011", "1018", "1026", "1027", "1028", "1029", "1031", "1033", "1036", "1037", "1038", "1039", "1041", "1042", "1043", "1051", "1052", "1053", "1054", "1055", "1056", "1057", "1058", "1082", "1083", "1400", "1401", "1402", "1408", "1409", "1410", "1412", "1413", "1414", "1416", "1418", "1419", "2003", "2015", "2031", "2032", "2033", "2043", "2045", "2049", "2053", "2138", "2139", "2140", "2301", "2302", "2303", "3001", "3003", "3004", "3010", "3022", "3024", "3025", "3026", "3027", "3028", "3030", "3031", "3033", "3034", "3035", "3036", "3041", "3044", "3046", "3050", "3052", "3053", "3056", "3057", "3060", "3065", "3067", "3068", "3069", "3070", "3071", "3072", "3074", "3075", "3077", "3078", "3082", "3083", "3085", "3086", "3087", "3089", "3091", "3092", "3094", "3096", "3097", "3098", "3100", "3101", "3102", "3105", "3108", "3110", "3113", "3114", "3115", "3116", "3123", "3124", "3133", "3134", "3135", "3136", "3139", "3140", "3142", "3143", "3144", "3145", "3146", "3147", "3151", "3152", "3153", "3155", "3156", "3157", "3165", "3174", "3190", "3191", "3196", "3197", "3198", "3211", "3222", "3285", "3301", "3302", "3303", "3340", "3341", "3363", "3364", "3401", "3504", "3508", "3512", "3599", "3671", "3672", "3673", "3675", "3706", "3711", "3715", "3742", "3748", "3751", "3800", "3801", "3802", "3812", "3901", "3902", "3903"];
+  $valid_summoners = ["SummonerFlash", "SummonerDot", "SummonerSmite", "SummonerExhaust", "SummonerTeleport", "SummonerHeal", "SummonerHaste", "SummonerMana", "SummonerClairvoyance", "SummonerBoost", "SummonerBarrier"];
+  $valid_champions = ["Aatrox", "Ahri", "Akali", "Alistar", "Amumu", "Anivia", "Annie", "Ashe", "AurelionSol", "Azir", "Bard", "Blitzcrank", "Brand", "Braum", "Caitlyn", "Cassiopeia", "Chogath", "Corki", "Darius", "Diana", "Draven", "DrMundo", "Ekko", "Elise", "Evelynn", "Ezreal", "FiddleSticks", "Fiora", "Fizz", "Galio", "Gangplank", "Garen", "Gnar", "Gragas", "Graves", "Hecarim", "Heimerdinger", "Illaoi", "Irelia", "Janna", "JarvanIV", "Jax", "Jayce", "Jhin", "Jinx", "Kalista", "Karma", "Karthus", "Kassadin", "Katarina", "Kayle", "Kennen", "Khazix", "Kindred", "KogMaw", "Leblanc", "LeeSin", "Leona", "Lissandra", "Lucian", "Lulu", "Lux", "Malphite", "Malzahar", "Maokai", "MasterYi", "MissFortune", "MonkeyKing", "Mordekaiser", "Morgana", "Nami", "Nasus", "Nautilus", "Nidalee", "Nocturne", "Nunu", "Olaf", "Orianna", "Pantheon", "Poppy", "Quinn", "Rammus", "RekSai", "Renekton", "Rengar", "Riven", "Rumble", "Ryze", "Sejuani", "Shaco", "Shen", "Shyvana", "Singed", "Sion", "Sivir", "Skarner", "Sona", "Soraka", "Swain", "Syndra", "TahmKench", "Taliyah", "Talon", "Taric", "Teemo", "Thresh", "Tristana", "Trundle", "Tryndamere", "TwistedFate", "Twitch", "Udyr", "Urgot", "Varus", "Vayne", "Veigar", "Velkoz", "Vi", "Viktor", "Vladimir", "Volibear", "Warwick", "Xerath", "XinZhao", "Yasuo", "Yorick", "Zac", "Zed", "Ziggs", "Zilean", "Zyra"];
+  if (strpos($word, '/') !== false) {
+    $wordarr = explode("/", $word);
+    if ($wordarr[0] == "item") {
+      $isItem = in_array($wordarr[1], $valid_items);
+      if ($isItem) {
+        $flag = true;
+      }
+    }
+    else if ($wordarr[0] == "summoner") {
+      $isSummoner = in_array($wordarr[1], $valid_summoners);
+      if ($isSummoner) {
+        $flag = true;
+      }
+    }
+    else if ($wordarr[0] == "champion") {
+      $isChamp = in_array($wordarr[1], $valid_champions);
+      if ($isChamp) {
+        $flag = true;
+      }
+    }
+  }
+  return $flag;
+}
+
+function getImgArgs($type) {
+
+}
+
+function guideform_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $field_name = $instance['field_name'];
+//dpm($items);
+  //dpm($items);
+  switch ($display['type']) {
+//    case 'field_masteries_formatter':
+//      foreach ($items as $delta => $item) {
+//        $element[$delta] = array(
+//          '#theme' => 'masteries_tpl',
+//          '#attached' => array(
+//            'js' => array(drupal_get_path('module', 'guideform') . '/GeneralGuideFormView.js'),
+//            'css' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.css'),
+//          ),
+//        );
+//      }
+//      break;
+    case 'field_text_long_guide_formatter':
+      foreach ($items as $delta => $item) {
+        $output = $item['safe_value'];
+        //print_r("Hey! soy formateado " . $item['safe_value']);
+        //$output = mySani($instance, $langcode, $item, 'value');
+        $outputParsed = parse_long_text_area_guide($output);
+        //  $output .= "Seguro y modificable gg";
+        $element[$delta] = array('#markup' => $outputParsed);
+      }
+      break;
+    case 'field_masteries_formatter':
+      foreach ($items as $delta => $item) {
+        $field_value = $item['maestrias'];
+        $element[$delta] = array(
+          '#prefix' => "<script type=\"text/javascript\">
+            window.addEventListener('load', function () {
+                loadSelectedMasteryTree(\"$field_name\", \"$field_value\");
+            }); </script>",
+          '#markup' => "<div class=\"masteriesContainer\" id=\"$field_name\">
+                        <div class=\"masteriesTree ferocity\">
+                            <div class=\"masteriesTypeTitle\">Ferocidad: 0</div>
+                            <div class=\"masteriesLevelContainer\">
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"101\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6111\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg   lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 0;\">
+                                        </div>
+                                        <div class=\"masteryImgGray   lvl-1\" style=\"background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 0; \">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6114\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg   lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 0;\">
+                                        </div>
+                                        <div class=\"masteryImgGray   lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"102\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6121\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg  \" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 0;\">
+                                        </div>
+                                        <div class=\"masteryImgGray  \" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6122\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray  \" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6123\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"104\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6131\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6134\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"105\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6141\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6142\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"107\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6151\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 0 ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 0 ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6154\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"108\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6161\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6162\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6164\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class=\"masteriesTree cunning\">
+                            <div class=\"masteriesTypeTitle\">Astucia: 0</div>
+                            <div class=\"masteriesLevelContainer\">
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"111\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6311\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6312\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"112\">
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6321\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6322\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6323\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"114\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6331\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 25% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 25% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6332\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 50%;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"115\" >
+                                    <div class=\"masteryIconContainer center\" data-id=\"6342\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6343\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 50%;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"117\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6351\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6352\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"118\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6361\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6362\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6363\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class=\"masteriesTree resolve\">
+                            <div class=\"masteriesTypeTitle\">Valor: 0</div>
+                            <div class=\"masteriesLevelContainer\">
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"121\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6211\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 50%;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\"  data-id=\"6212\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg lvl1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 50% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray lvl-1\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 50% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"122\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6221\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6223\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 11.11% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 11.11% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"124\">
+                                    <div class=\"masteryIconContainer left\" data-id=\"6231\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 22.22% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 22.22% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6232\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 33.33% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 33.33% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"125\">
+                                    <div class=\"masteryIconContainer center\"  data-id=\"6241\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 44.44% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 44.44% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6242\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 55.55% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 55.55% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"127\">
+                                    <div class=\"masteryIconContainer left\"  data-id=\"6251\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 66.66% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 66.66% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer right\" data-id=\"6252\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 77.77% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 77.77% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/5
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class=\"masteriesLevel\" data-lvl-tier=\"128\">
+                                    <div class=\"masteryIconContainer center\" data-id=\"6261\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 88.88% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 88.88% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6262\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 99.99% 75% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 99.99% 75% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                    <div class=\"masteryIconContainer center\" data-id=\"6263\" data-name=\"mastery\" data-counter=\"0\">
+                                        <div class=\"masteryImg\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/mastery0.png') 0 100% ;\">
+                                        </div>
+                                        <div class=\"masteryImgGray\" style=\" background: url('//ddragon.leagueoflegends.com/cdn/6.10.1/img/sprite/gray_mastery0.png') 0 100% ;\">
+                                        </div>
+                                        <div class=\"counter\">0/1
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>",
+          '#attached' => array(
+            'js' => array(drupal_get_path('module', 'guideform') . '/GeneralGuideFormView.js', drupal_get_path('module', 'guideform') . '/GuideFormView.js'),
+            'css' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.css'),
+          ),
+        );
+      }
+      break;
+    case 'field_runes_formatter':
+      foreach ($items as $delta => $item) {
+        $field_value = $item['runas'];
+        $element[$delta] = array(
+          '#markup' => "<div class=\"runesViewContainer\" id=\"$field_name\">
+            <script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadSelectedRunes(\"$field_name\", \"$field_value\");
+            }, 500));
+        </script>
+        </div>",
+          '#attached' => array(
+            'js' => array(drupal_get_path('module', 'guideform') . '/GuideFormView.js'),
+          ),
+        );
+      }
+      break;
+    case 'field_skills_formatter':
+      foreach ($items as $delta => $item) {
+        $field_value = $item['habilidades'];
+        $element[$delta] = array(
+          '#markup' => "<div id=\"$field_name\" class=\"clearfix\">
+            <script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadSelectedSkills(\"$field_name\", \"$field_value\");
+            }, 500));
+        </script>
+        </div>",
+        );
+      }
+      break;
+    case 'field_fullItems_formatter':
+      foreach ($items as $delta => $item) {
+        $field_value = $item['fullItems'];
+        $element[$delta] = array(
+          '#markup' => "<div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer\">
+            <script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadSelectedItems(\"$field_name\", 'finish', \"$field_value\");
+            }, 500));
+        </script>
+        </div>",
+        );
+      }
+      break;
+    case 'field_startItems_formatter':
+      foreach ($items as $delta => $item) {
+        $field_value = $item['startItems'];
+        $element[$delta] = array(
+          '#markup' => "<div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer\">
+            <script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadSelectedItems(\"$field_name\", 'starting', \"$field_value\");
+            }, 500));
+        </script>
+        </div>",
+        );
+      }
+      break;
+    case 'field_spells_formatter':
+      foreach ($items as $delta => $item) {
+        $field_value = $item['hechizos'];
+        $element[$delta] = array(
+          '#markup' => "<div id=\"$field_name\" class=\"selectorsContainer\">
+            <script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadSelectedSpells(\"$field_name\", \"$field_value\");
+            }, 500));
+        </script>
+        </div>",
+        );
+      }
+      break;
+  }
+  return $element;
+}
+
+function guideform_field_widget_error($element, $error, $form, &$form_state) {
+  dpm($error);
+  form_error($element, $error['message']);
+//  switch ($error['error']) {
+//    case 'default':
+//      //$error_element = $element[$element['#columns'][0]];
+//      form_error($element, $error['message']);
+//      break;
+//  }
+}

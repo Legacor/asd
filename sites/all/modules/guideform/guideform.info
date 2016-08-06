@@ -1,0 +1,3 @@
+name = GuidesForm Module
+description = Edita y customiza el form para crear guias.
+core = 7.x
