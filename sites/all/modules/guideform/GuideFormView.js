@@ -1,8 +1,10 @@
-/* 
+/*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
+
+/* global champObj, champSelected, version */
 
 jQuery(document).ready(function ($) {
 
@@ -11,6 +13,7 @@ jQuery(document).ready(function ($) {
 //------------------------------------------------------------MASTERIES---------------------------------------------------------
     function changeBorder(elem, color) {
         $(elem).children(".masteryImg").css("border-color", color);
+        $(elem).children(".counter").css("border-color", color);
     }
 
     function masteryPointsCounter(masteriesContainer) { //recibe el parent superior, para contar todo el arbol
@@ -49,15 +52,76 @@ jQuery(document).ready(function ($) {
         });
     }
 
+    function enableLastLevels($masteriesContainer) {
+        var reachedLastLevel;
+        $($masteriesContainer).children().each(function () { //obtener el container mediante el ID del field, se recorren sus 3 contenedores
+            reachedLastLevel = false;
+            $(this).find(".masteriesLevelContainer").children().each(function () { //se recorren los masteries level de los contenedores principales
+                if (reachedLastLevel)
+                    return true;
+                $(this).children().each(function () { //se recorren los íconos que están dentro de los niveles
+                    var masteryCounter = parseInt($(this).data("counter"));
+                    if (!lvlHasMaxPoints(this, masteryCounter)) {
+                        $(this).children(".masteryImg").show();
+                        $(this).children(".masteryImgGray").hide();
+                        changeBorder(this, "green");
+                        reachedLastLevel = true;
+                    }
+                });
+            });
+        });
+    }
+
+
+
+    function lvlHasMaxPoints(elem, actualPoints) { //se "balancean" puntos para que haya un maximo de 1 o 5 puntos por nivel
+        var maxPointslvl = 0;
+        points = actualPoints;
+        $(elem).siblings().each(function () {
+            var strCounter = $(this).children(".counter").html();
+            numLeft = parseInt(strCounter, 10);
+            numRight = parseInt(strCounter.charAt(2), 10);
+            maxPointslvl = numRight;
+            points = points + numLeft;
+        });
+        if (points === maxPointslvl) {
+            return true;
+        } else if (points < maxPointslvl) {
+            return false;
+        }
+    }
+
+    function disableFirstLevels($masteriesContainer) {
+        $($masteriesContainer).children().each(function () { //obtener el container mediante el ID del field, se recorren sus 3 contenedores
+            $(this).find(".masteriesLevelContainer").children().first().each(function () { //se recorren los masteries level de los contenedores principales
+                $(this).children().each(function () { //se recorren los íconos que están dentro de los niveles
+                    var masteryCounter = parseInt($(this).data("counter"), 10);
+                    console.log("counter" + masteryCounter);
+                    if (lvlHasMaxPoints(this, masteryCounter) && masteryCounter === 0) {
+                        $(this).children(".masteryImg").hide();
+                        $(this).children(".masteryImgGray").show();
+                        // changeBorder(this, "black");
+                    }
+                });
+            });
+        });
+    }
     window.loadSelectedMasteryTree = function (parentID, values) {
         //var masteryTreeValues = document.getElementById("field_maestrias1").value;
+        var $fieldOfTree = $('#' + parentID).next();
+
+        var actualFieldValue = $fieldOfTree.val();
+        // console.log("no sirov para nada" + actualFieldValue);
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            values = actualFieldValue;
+        }
         var valuesArray = values.split(",");
         var arrayLength = valuesArray.length;
         var elemID = "#" + parentID;
         $(elemID).children().each(function () { //obtener el container mediante el ID del field, se recorren sus 3 contenedores
             $(this).find(".masteriesLevelContainer").children().each(function () { //se recorren los masteries level de los contenedores principales
                 $(this).children().each(function () { //se recorren los íconos que están dentro de los niveles
-                    var masteryID = $(this).data("id").toString();  //obtener id              
+                    var masteryID = $(this).data("id").toString();  //obtener id
                     for (i = 0; i < arrayLength; i++) {
                         var arrayID = valuesArray[i].toString();
                         var arrayIDStr = arrayID.substring(0, 4);
@@ -75,9 +139,17 @@ jQuery(document).ready(function ($) {
 
             });
         });
-        masteryPointsCounter($(elemID));
-        cleanWholeTree($(elemID));
+        var treeValue = masteryPointsCounter($(elemID));
+        if (treeValue === 30) {
+            cleanWholeTree($(elemID));
+        } else {
+            var masteriesContainer = $(elemID);
+            disableFirstLevels(masteriesContainer);
+            enableLastLevels($(elemID));
+        }
     };
+
+
 
 
 //------------------------------------------------------------ITEMS/SPELLS---------------------------------------------------------
@@ -90,7 +162,7 @@ jQuery(document).ready(function ($) {
         var trinketID;
         for (var i = 0; i < valuesArraySize - 1; i++) {
             var id = valuesArray[i];
-            if (typeOfItems === "starting") { //condiciones para 
+            if (typeOfItems === "starting") { //condiciones para
                 if (id === "3340" || id === "3341") {
                     trinketID = id;
                     continue;
@@ -225,14 +297,21 @@ jQuery(document).ready(function ($) {
         var table = document.createElement("table");
         var tableRow, tableData, tableDataText, tdLetter, tdIcon, tdText;
         //var fieldInfo = document.getElementById(fieldID).value;
+
         var fieldInfoArray, skillID, skillValue, currentStr;
+        var $fieldOfSkills = $("#" + parentID).next();
+        var actualFieldValue = $fieldOfSkills.val();
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            fieldInfo = actualFieldValue;
+        }
         fieldInfoArray = fieldInfo.split(",");
         var rowsSkills = [];
         var rows = ["Q", "W", "E", "R"];
+        var nums = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18"];
         var rowVal;
         for (var i = 0; i < 4; i++) {
             rowVal = rows[i];
-            for (var x = 0; x < 18; x++) { //ciclo que recorre el field de los skills
+            for (var x = 0; x < fieldInfoArray.length; x++) { //ciclo que recorre el field de los skills
                 currentStr = fieldInfoArray[x].toString();
                 skillValue = currentStr.charAt(3);
                 if (skillValue === rowVal) { //se obtienen los id que tienen un valor igual a este row
@@ -254,11 +333,15 @@ jQuery(document).ready(function ($) {
             tableRow.appendChild(tdText);
             for (var z = 1; z < 19; z++) { //ciclo que crea los 18 div's para los niveles
                 tableData = document.createElement("td");
+                tableData.setAttribute("class", "skillInactive");
                 for (var k = 0; k < rowsSkills.length; k++) {
                     if (parseInt(rowsSkills[k], 10) === z) {
                         tableData.setAttribute("class", "skillActive");
                     }
                 }
+
+                tableData.setAttribute("data-id", nums[z - 1]);
+                tableData.setAttribute("data-value", rows[i]);
                 tableDataText = document.createTextNode(z.toString());
                 tableData.appendChild(tableDataText);
                 tableRow.appendChild(tableData);
@@ -269,7 +352,7 @@ jQuery(document).ready(function ($) {
         document.getElementById(parentID).appendChild(table);
         loadChampSkills(parentID);
     };
-    
+
     function loadChampSkills(containerID) {
         var i = 0;
         while (i < 4) {

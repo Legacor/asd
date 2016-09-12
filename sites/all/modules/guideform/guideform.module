@@ -51,59 +51,26 @@ function guideform_field_info() {
       'default_widget' => 'field_spells_widget',
       'default_formatter' => 'field_spells_formatter',
     ),
+    'field_champion' => array(
+      'label' => t('Champion Selection'),
+      'description' => t('Este campo guarda el nombre del campeón elegido para la guía'),
+      'default_widget' => 'field_champion_widget',
+      'default_formatter' => 'field_champion_formatter',
+    )
   );
 }
-
-//function guideform_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, $errors) {
-//  foreach ($items as $delta => $item) {
-//    foreach (array('fullItems', 'startItems', 'spells') as $column) {
-//      if (!empty($item[$column])) {
-//        $fieldName = $instance['field_name'];
-//        switch ($column) {
-//          case 'fullItems':
-//            if (drupal_strlen($item[$column]) > 200) {
-//              $message = t("The field {$fieldID} is too big");
-//            }
-//            break;
-//          case 'startItems':
-//            if (drupal_strlen($item[$column]) > 100) {
-//              $message = t("The field {$fieldID} is too big");
-//              //print_r("Soy message: $message");
-//            }
-//            break;
-//          case 'spells':
-//            if (drupal_strlen($item[$column]) > 50) {
-//              $message = t("The field {$fieldID} is too big");
-//            }
-//            break;
-//        }
-//        if (isset($message)) {
-//          $errors[$field['field_name']][$langcode][$delta][] = array(
-//            'error' => "text_excedeed_length",
-//            'message' => $message,
-//          );
-//          dpm($errors); //this prints correctly, uses the same format of other implementations of this hook
-//        }
-//      }
-//    }
-//  }
-//}
-
 
 function guideform_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
   foreach ($items as $delta => $item) {
 // @todo Length is counted separately for summary and value, so the maximum
 //   length can be exceeded very easily.
-    foreach (array('maestrias', 'runas', 'habilidades', 'fullItems', 'startItems', 'hechizos') as $column) {
+    foreach (array('maestrias', 'runas', 'habilidades', 'fullItems', 'startItems', 'hechizos', 'champion') as $column) {
       if (!empty($item[$column])) {
         $fieldName = $instance['field_name'];
-//print_r("estoy entrando al error");
-//   if (!empty($field['settings']['max_length']) && drupal_strlen($item[$column]) > $field['settings']['max_length']) {
         switch ($column) {
           case 'runas':
           case 'habilidades':
           case 'maestrias':
-//print_r("did i make it?");
             if (drupal_strlen($item[$column]) > 200) {
               $message = t("Error con el field: {$fieldName}, excedió tamaño permitido");
             }
@@ -113,7 +80,11 @@ function guideform_field_validate($entity_type, $entity, $field, $instance, $lan
           case 'hechizos':
             if (drupal_strlen($item[$column]) > 50) {
               $message = t("Error con el field: {$fieldName}, excedió tamaño permitido");
-//print_r("Soy message: $message");
+            }
+            break;
+          case 'champion':
+            if (drupal_strlen($item[$column]) > 25) {
+              $message = t("Error con el field: {$fieldName}, excedió tamaño permitido");
             }
             break;
         }
@@ -143,7 +114,7 @@ function guideform_field_is_empty($item, $field) {
   return empty($item[$key]);
 }
 
-function guideform_field_widget_settings_form($field, $instance) {
+function guideform_field_widget_settings_form($field, $instance) { //settings form para el custom textarea de las guias
   $widget = $instance['widget'];
   $settings = $widget['settings'];
   $form = array();
@@ -185,6 +156,10 @@ function guideform_field_widget_info() {
       'label' => t('Spells Widget'),
       'field types' => array('field_spells'),
     ),
+    'field_champion_widget' => array(
+      'label' => t('Champion Widget'),
+      'field types' => array('field_champion'),
+    ),
     'field_text_long_guide' => array(
       'label' => t('Textarea Guia'),
       'field types' => array('text_long'),
@@ -197,31 +172,65 @@ function guideform_field_widget_info() {
   );
 }
 
-//function guideform_form_guia_node_form_alter($form, $form_state, $form_id){
-//  $your_field_collection = element_children($form['your_field_collection']['#language']);
-//  foreach ($your_field_collection as $key => $value) {
-//    if (is_numeric($value)) {
-//      $form['your_field_collection'][LANGUAGE_NONE][$val]['your_field_collection_field']['#title'] = t('Your new title');
-//      $form['your_field_collection'][LANGUAGE_NONE][$val]['your_field_collection_field']['#title_display'] = 'invisible';
-//    }
-//  }
-//  print_r($form);
+//function guideform_form_guia_node_form_alter(&$form, &$form_state, $form_id) {
+//  dpm($form);
+//  $form['#groups']['group_fieldset_intro'] += array(
+//    '#prefix' => "<section id=\"sectionIntro\"",
+//    '#suffix' => "</section>",
+//  );
 //}
 
 function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-//$value = isset($items[$delta]['maestrias']) ? $items[$delta]['maestrias'] : '';
   $widget = $element;
   $widget['#delta'] = $delta;
   $field_name = $instance['field_name'];
+  $fieldDefaultValue = "";
+  if (isset($element['#entity']->{$field_name})) {
+    $fieldPreValue = $element['#entity']->{$field_name};
+    if (!empty($fieldPreValue)) {
+      if (!empty($fieldPreValue['und'])) {
+        $keys = array_keys($fieldPreValue['und'][0]);
+        $fieldDefaultValue = (string) $fieldPreValue['und'][0][$keys[0]];
+      }
+    }
+  }
+
   switch ($instance['widget']['type']) {
-    case 'field_masteries_widget':
-// $widget['maestrias'] = array(
-      $widget['maestrias'] = $element + array(
-//'#attributes' => array('id' => array($field_name)),
+    case 'field_champion_widget':
+      dpm($instance);
+      $fieldImg = "";
+      if ($fieldDefaultValue !== "") {
+        $fieldImg = '<img src="http://ddragon.leagueoflegends.com/cdn/6.16.2/img/champion/' . $fieldDefaultValue . '.png" alt="" id="championSelImg" />';
+      }
+      $widget['champion'] = $element + array(
         '#type' => 'hidden',
-        '#default_value' => '',
-        //  '#prefix' => "<div class=\"masteriesContainer\">
-        '#prefix' => "<div class=\"masteriesContainer\" id=\"$field_name\">
+        '#attributes' => array('id' => array('championSelInput')),
+        '#default_value' => $fieldDefaultValue,
+        '#prefix' => '<script type="text/javascript">
+               window.addEventListener("load", setTimeout(function (){
+                       loadChampion("' . $field_name . '", "' . $fieldDefaultValue . '");
+                    }, 1000));
+            </script>
+            <div id="championSelection">
+                <div style="margin-bottom: 20px;" class="dropdown champsContainer" id="championSelContainer" >
+                    <input type="text" data-toggle="dropdown" value="' . $fieldDefaultValue . '" class="dropdown-toggle" id="champSelBox" aria-expanded="false"/>
+                    <div class="dropdown-menu ddForChamps">
+                        <div id="champSelImgContainer" class="ddSelectorsContainer"></div>
+                    </div>
+                </div>
+                <div id="championSelFrame">' . $fieldImg . '</div>
+            </div>',
+      );
+      break;
+    case 'field_masteries_widget':
+      $widget['maestrias'] = $element + array(
+        '#type' => 'hidden',
+        '#default_value' => $fieldDefaultValue,
+        '#prefix' => "<script type=\"text/javascript\">
+           window.addEventListener('load', function () {
+                loadSelectedMasteryTree(\"$field_name\", \"$fieldDefaultValue\");
+            }); </script> \n
+              <div class=\"masteriesContainer\" id=\"$field_name\">
                         <div class=\"masteriesTree ferocity\">
                             <div class=\"masteriesTypeTitle\">Ferocidad: 0</div>
                             <div class=\"masteriesLevelContainer\">
@@ -603,7 +612,8 @@ function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $l
                         </div>
                     </div>",
         '#attached' => array(
-          'js' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.js'),
+          //'js' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.js'),
+          'js' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.js', drupal_get_path('module', 'guideform') . '/GeneralGuideFormView.js', drupal_get_path('module', 'guideform') . '/GuideFormView.js'),
           'css' => array(drupal_get_path('module', 'guideform') . '/guideBuilder.css'),
         ),
       );
@@ -611,8 +621,13 @@ function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $l
     case 'field_runes_widget':
       $widget['runas'] = array(
         '#type' => 'hidden',
-        '#default_value' => '',
-        '#prefix' => "<div class=\"seccionRunas\" id=\"$field_name\">
+        '#default_value' => $fieldDefaultValue,
+        '#prefix' => "<script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadPresavedRunes(\"$field_name\", \"$fieldDefaultValue\");
+            }, 2000));
+        </script>\n
+        <div class=\"seccionRunas\" id=\"$field_name\">
             <div class=\"runesSect runeTypeSelector\">
                 <div class=\"runeTypeDiv quints\" >Quintaesencias
                 </div>
@@ -636,27 +651,32 @@ function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $l
     case 'field_skills_widget':
       $widget['habilidades'] = array(
         '#type' => 'hidden',
-        '#default_value' => '',
+        '#default_value' => $fieldDefaultValue,
         '#prefix' => "<div id=\"$field_name\" class=\"skillsContainer clearfix\">
             <script type=\"text/javascript\">
-               window.addEventListener(\"load\", function (){
-                       createSkills(\"$field_name\");
-                    });
+               window.addEventListener(\"load\", setTimeout(function (){
+                       loadSelectedSkills(\"$field_name\", \"$fieldDefaultValue\");
+                    }, 2000));
             </script>
         </div>",
         '#attached' => array(
-          'js' => array(drupal_get_path('module', 'guideform') . '/general.js'),
+          'js' => array(drupal_get_path('module', 'guideform') . '/general.js', drupal_get_path('module', 'guideform') . '/waypoint.js'),
         ),
       );
       break;
     case 'field_fullItems_widget':
       $widget['fullItems'] = array(
         '#type' => 'hidden',
-        '#default_value' => '',
-        '#prefix' => "<div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer dropdown\">
+        '#default_value' => $fieldDefaultValue,
+        '#prefix' => "<script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadPresavedItems(\"$field_name\", 'finish', \"$fieldDefaultValue\");
+            }, 1000));
+        </script>
+        <div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer dropdown\">
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 0)\" data-index=\"0\" data-toggle=\"dropdown\" ></div>
-                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 1)\" data-index=\"1\" data-toggle=\"dropdown\" ></div>
-                <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 2)\" data-index=\"2\" data-toggle=\"dropdown\" ></div>
+               <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 1)\" data-index=\"1\" data-toggle=\"dropdown\" ></div>
+               <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 2)\" data-index=\"2\" data-toggle=\"dropdown\" ></div>
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 3)\" data-index=\"3\" data-toggle=\"dropdown\" ></div>
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 4)\" data-index=\"4\" data-toggle=\"dropdown\" ></div>
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 5)\" data-index=\"5\" data-toggle=\"dropdown\" ></div>
@@ -670,8 +690,13 @@ function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $l
     case 'field_startItems_widget':
       $widget['startItems'] = array(
         '#type' => 'hidden',
-        '#default_value' => '',
-        '#prefix' => "<div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer dropdown\">
+        '#default_value' => $fieldDefaultValue,
+        '#prefix' => "<script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadPresavedItems(\"$field_name\", 'starting', \"$fieldDefaultValue\");
+            }, 1000));
+        </script>
+        <div id=\"$field_name\" class=\"fullItemsContainer selectorsContainer dropdown\">
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 0, 'starting')\" data-index=\"0\" data-toggle=\"dropdown\" ></div>
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionItems('$field_name', 1, 'starting')\" data-index=\"1\" data-toggle=\"dropdown\" ></div>
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadTrinkets('$field_name', 2, 'starting')\" data-index=\"2\" data-toggle=\"dropdown\" ></div>
@@ -682,11 +707,15 @@ function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $l
       );
       break;
     case 'field_spells_widget':
-//dpm($widget);
       $widget['hechizos'] = array(
         '#type' => 'hidden',
-        '#default_value' => '',
-        '#prefix' => "<div id=\"$field_name\" class=\"sSpellsContainer selectorsContainer dropdown\">
+        '#default_value' => $fieldDefaultValue,
+        '#prefix' => "<script type=\"text/javascript\">
+            window.addEventListener('load', setTimeout(function () {
+                loadPresavedSpells(\"$field_name\", \"$fieldDefaultValue\");
+            }, 1000));
+        </script>
+        <div id=\"$field_name\" class=\"sSpellsContainer selectorsContainer dropdown\">
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionSpells('$field_name', 0)\" data-index=\"0\" data-toggle=\"dropdown\" ></div>
                 <div class=\"selectorContainer dropdown-toggle\" onclick=\"loadSelectionSpells('$field_name', 1)\" data-index=\"1\" data-toggle=\"dropdown\" ></div>
                 <div class=\"dropdown-menu ddForItems\">
@@ -700,11 +729,12 @@ function guideform_field_widget_form(&$form, &$form_state, $field, $instance, $l
       $widget = $element + array(//al ser un text format, se procesa de forma diferente
 //$widget['value'] = array(
         '#type' => 'textarea',
+        '#default_value' => $fieldDefaultValue,
         '#rows' => $instance['widget']['settings']['rows'], //se obtiene la informacion de los settings que definimos para el field
         '#attributes' => array('class' => array('myTextArea')), //clase personalizada, utilizada para manejar los encoded strings para imagenes
       );
       $widget['#type'] = 'text_format'; //widget es de tipo formato
-      $widget['#format'] = 'guideshtml'; //ya que este field solo va a ser utilizado en las guias, en dado caso se podria cambiar
+      $widget['#format'] = 'guideshtml'; //ya que este field solo va a ser utilizado en las guias (por eso el filtro guideshtml), en dado caso se podria cambiar
       $widget['#base_type'] = 'textarea';
       break;
   }
@@ -765,54 +795,25 @@ function initialize_riot_static_data(&$requestItems, &$requestChamps, &$requestS
   }
 }
 
-//function initialize_json_objects(&$objItems, &$objChamps, &$objSummoners) {
-//  if (!isset($objChamps)) {
-//    $objChamps = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/champion.json");
-//  }
-//  if (!isset($objItems)) {
-//    $objItems = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/item.json");
-//  }
-//  if (!isset($objSummoners)) {
-//    $objSummoners = drupal_http_request("http://ddragon.leagueoflegends.com/cdn/{$version}/data/en_US/summoner.json");
-//  }
-//}
-
 function parse_long_text_area_guide(&$text) {
-//  static $requestChamps, $requestItems, $requestSummoners;
-//  initialize_riot_static_data($requestItems, $requestChamps, $requestSummoners);
-//  $objChamps = drupal_json_decode($requestChamps->data);
-//  $objItems = drupal_json_decode($requestItems->data);
-//  $objSummoners = drupal_json_decode($requestSummoners->data);
-//  dpm($objChamps);
-//  dpm($objItems);
-//  dpm($objSummoners);
   $array = str_split($text);
   $pos = 0;
   $posFinal = 0;
   $outputParsed = "";
-//  dpm($array);
   foreach ($array as $key => $char) {
     $char = (string) $char;
     if ($char == "[") {
       $output = parseBrackets($array, $posFinal, $text);
-//      echo "output:" . $output;
       if ($output != "") {
-        //$posFinal++;
         $length = ($posFinal + 2) - $pos;
         $text = substr_replace($text, $output, $pos, $length);
-        //echo "soy pos inicial:" . $pos . "soy posfinal=" . $posFinal;
-        //echo "milength=" . $length . "--";
-        //echo "Este es mi output!!" . $text;
         return parse_long_text_area_guide($text);
-        //$pos = $posFinal - 1; //hace que sirva el primero
-        //$pos += 65;
       }
     }
     $pos++;
     $posFinal = $pos;
   }
   $outputParsed = $text;
-  echo "Soy el parsed pue: " . $outputParsed;
   return $outputParsed;
 }
 
@@ -840,7 +841,6 @@ function parseBrackets($array, &$pos, $text) {
     }
   }
   return $outputCustom;
-//  echo "Soy string parseado=" . $stringTest;
 }
 
 function get_html_for_img($type, $id) {
@@ -858,7 +858,6 @@ function get_html_for_img($type, $id) {
     $imgSrc = "//ddragon.leagueoflegends.com/cdn/" . $version . "/img/item/" . $full;
     $htmlTest = "<img src=\"{$imgSrc}\" width=\"30\" height=\"30\">";
     $htmlOutput = $htmlTest;
-    //echo "Hey! vean lo que saque {$htmlTest}";
   }
   else if ($type == "champion") {
     $objChamps = drupal_json_decode($requestChamps->data);
@@ -867,7 +866,6 @@ function get_html_for_img($type, $id) {
     $imgSrc = "//ddragon.leagueoflegends.com/cdn/" . $version . "/img/champion/" . $full;
     $htmlTest = "<img src=\"{$imgSrc}\" width=\"30\" height=\"30\" >";
     $htmlOutput = $htmlTest;
-    //echo "Hey! vean lo que saque {$htmlTest}";
   }
   else if ($type == "summoner") {
     $objSummoners = drupal_json_decode($requestSummoners->data);
@@ -909,15 +907,11 @@ function isValidFormat($word) { //esta funcion verifica que la palabra correspon
   return $flag;
 }
 
-function getImgArgs($type) {
-
-}
-
 function guideform_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $element = array();
   $field_name = $instance['field_name'];
 //dpm($items);
-  //dpm($items);
+//dpm($items);
   switch ($display['type']) {
 //    case 'field_masteries_formatter':
 //      foreach ($items as $delta => $item) {

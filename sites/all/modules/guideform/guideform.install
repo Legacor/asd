@@ -79,8 +79,19 @@ function guideform_field_schema($field) {
         ),
       );
       break;
+    case 'field_champion':
+      $columns = array(
+        'champion' => array(
+          'type' => 'varchar',
+          'length' => 25,
+          'not null' => FALSE,
+        ),
+      );
+      break;
   }
+
   return array(
     'columns' => $columns,
+//    'indexes' => $indexes,
   );
 }

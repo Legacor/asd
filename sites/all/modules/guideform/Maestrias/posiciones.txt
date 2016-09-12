@@ -1,0 +1,12 @@
+red - 2: 800px 900px
+	880px 900px
+	1500px 900px
+	1100px 600px
+
+green - 11:  url(Maestrias/11.jpg) 240px 200px
+url(Maestrias/12.jpg) -1600px -450px
+15-   340px -410px
+
+
+blue - 21: -1700px -40px
+

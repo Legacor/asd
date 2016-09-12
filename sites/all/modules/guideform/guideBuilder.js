@@ -10,19 +10,23 @@ jQuery(document).ready(function ($) {
 
     function changeBorder(elem, color) {
         $(elem).children(".masteryImg").css("border-color", color);
+        $(elem).children(".counter").css("border-color", color);
+        //$(elem).children(".counter").css("color", color);
     }
 
     function disableSiblings(elem) {
         $(elem).siblings().each(function () {
             $(this).children(".masteryImg").hide();
             $(this).children(".masteryImgGray").show();
+            changeBorder(this, "gray");
         });
     }
 
     function enableSiblings(elem) {
-        $(elem).siblings().each(function () {
+        $(elem).parent().children().each(function () {
             $(this).children(".masteryImg").show();
             $(this).children(".masteryImgGray").hide();
+            changeBorder(this, "green");
         });
     }
 
@@ -31,6 +35,7 @@ jQuery(document).ready(function ($) {
         if (hasNext.length > 0) {
             hasNext.children().each(function () {
                 $(this).children(".masteryImg").show();
+                $(this).children(".counter").css("border-color", "green");
                 $(this).children(".masteryImgGray").hide();
             });
         } else {
@@ -43,6 +48,7 @@ jQuery(document).ready(function ($) {
         if (hasNext.length > 0) {
             hasNext.children().each(function () {
                 $(this).children(".masteryImg").hide();
+                $(this).children(".counter").css("border-color", "gray");
                 $(this).children(".masteryImgGray").show();
             });
         } else {
@@ -109,16 +115,39 @@ jQuery(document).ready(function ($) {
         }
     }
 
+    function enableLastLevels($masteriesContainer) {
+        var reachedLastLevel;
+        $($masteriesContainer).children().each(function () { //obtener el container mediante el ID del field, se recorren sus 3 contenedores
+            reachedLastLevel = false;
+            $(this).find(".masteriesLevelContainer").children().each(function () { //se recorren los masteries level de los contenedores principales
+                if (reachedLastLevel)
+                    return true;
+                $(this).children().each(function () { //se recorren los íconos que están dentro de los niveles
+                    var masteryCounter = parseInt($(this).data("counter"));
+                    if (!lvlHasMaxPoints(this, masteryCounter)) {
+                        $(this).children(".masteryImg").show();
+                        $(this).children(".masteryImgGray").hide();
+                        changeBorder(this, "green");
+                        reachedLastLevel = true;
+                    }
+                });
+            });
+        });
+    }
+
+
+
     $(".masteryIconContainer").mousedown(function (e) {
         var strNum = $(this).children(".counter").html();
         var numLeft = parseInt(strNum);
         var numRight = parseInt(strNum.charAt(2));
         var masteriesContainer = $(this).parents(".masteriesContainer");
         var totalPoints = masteryPointsCounter(masteriesContainer);
-        if (e.which === 3 && numLeft > 0) { //condicion left click
+        if (e.which === 3 && numLeft > 0) { //condicion right click
             if (canRemovePoint(this) === true) {
                 numLeft--;
                 enableFirstLevels(masteriesContainer);
+                enableLastLevels(masteriesContainer);
                 //masteryPoints++;
             } else {
                 return;
@@ -155,8 +184,11 @@ jQuery(document).ready(function ($) {
         var masteryID = $(this).data("id").toString(); // se obtiene el id de la maestria que se está agregando
         updateGuideField(masteriesField, masteryID, newNum, "mastery"); //se actualiza el hidden field respectivo
         totalPoints = masteryPointsCounter(masteriesContainer);
-        if (totalPoints === 30){
+        if (totalPoints === 30) {
             cleanWholeTree(masteriesContainer);
+            var masteryFieldValue = masteriesContainer.next().val().toString();
+            var masteryID = masteriesContainer.attr("id").toString();
+            loadSelectedMasteryTree(masteryID, masteryFieldValue);
         }
 
     });
@@ -165,7 +197,7 @@ jQuery(document).ready(function ($) {
         return false;
     });
 
-    
+
     function masteryPointsCounter(masteriesContainer) { //recibe el parent superior, para contar todo el arbol
         var counterFerocity = getPointsOfTree(masteriesContainer, ".ferocity", "Ferocidad: ");
         var counterCunning = getPointsOfTree(masteriesContainer, ".cunning", "Astucia: ");
@@ -187,32 +219,32 @@ jQuery(document).ready(function ($) {
         $($masteriesContainer).children(tree).children(".masteriesTypeTitle").text(treeTitle);
         return totalPoints;
     }
-    
-    
-    function cleanWholeTree($masteriesContainer){
+
+
+    function cleanWholeTree($masteriesContainer) {
         $($masteriesContainer).children().each(function () { //obtener el container mediante el ID del field, se recorren sus 3 contenedores
-            $(this).find(".masteriesLevelContainer").children().each(function (){ //se recorren los masteries level de los contenedores principales
-                $(this).children().each(function(){ //se recorren los íconos que están dentro de los niveles
-                    var masteryCounter =  parseInt($(this).data("counter"));
+            $(this).find(".masteriesLevelContainer").children().each(function () { //se recorren los masteries level de los contenedores principales
+                $(this).children().each(function () { //se recorren los íconos que están dentro de los niveles
+                    var masteryCounter = parseInt($(this).data("counter"));
                     console.log("mastery counters:" + masteryCounter);
-                    if (masteryCounter === 0){
+                    if (masteryCounter === 0) {
                         $(this).children(".masteryImg").hide();
                         $(this).children(".masteryImgGray").show();
+                        changeBorder(this, "gray");
                     }
                 });
             });
         });
     }
-    
-    function enableFirstLevels($masteriesContainer){
+
+    function enableFirstLevels($masteriesContainer) {
         $($masteriesContainer).children().each(function () { //obtener el container mediante el ID del field, se recorren sus 3 contenedores
-            $(this).find(".masteriesLevelContainer").children().first().each(function (){ //se recorren los masteries level de los contenedores principales
-                $(this).children().each(function(){ //se recorren los íconos que están dentro de los niveles
-                    var masteryCounter =  parseInt($(this).data("counter"));
-                    if (lvlHasMaxPoints(this,masteryCounter)){
+            $(this).find(".masteriesLevelContainer").children().first().each(function () { //se recorren los masteries level de los contenedores principales
+                $(this).children().each(function () { //se recorren los íconos que están dentro de los niveles
+                    var masteryCounter = parseInt($(this).data("counter"));
+                    if (lvlHasMaxPoints(this, masteryCounter)) {
                         return false;
-                    }
-                    else{
+                    } else {
                         $(this).children(".masteryImg").show();
                         $(this).children(".masteryImgGray").hide();
                         changeBorder(this, "green");
@@ -220,7 +252,7 @@ jQuery(document).ready(function ($) {
                 });
             });
         });
-    }       
+    }
 
 
 });

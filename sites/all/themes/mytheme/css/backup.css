@@ -1,0 +1,43 @@
+body{
+  /*background: url(Patterns/black_lozenge.png) repeat;*/
+  background: url(Patterns/noisy_net.png) repeat;
+}
+
+.form-type-item {
+  float: right;
+}
+.rate-info {
+  position: absolute;
+  top: 1px;
+  right: 50px;
+  font-weight: bold;
+  font-size: 120%;
+  color: #36117e;
+}
+
+#rate-node-237-1-1{
+  position: relative;
+}
+
+.form-item.form-type-item.form-group > .control-label {
+  display: none;
+}
+
+.field-item.even{
+ color: #466675;
+}
+
+div.panel-body{ /*cuerpo del content type, aqui generalmente va el contenido de cada field*/
+  /*background-color: #6C6E70;*/
+  background-color: #CCCCCC;
+}
+
+div.field-type-text-long > div.field-label{  /*para ocultar los labels en los display de los text fields*/
+  display: none;
+}
+
+.panel-default > legend.panel-heading{ /*heading de los fieldsets*/
+/*  background-color: #2D3033; */
+  background-color: #6A8D9D;
+  color: #FFFFFF;
+}

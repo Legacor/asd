@@ -1,4 +1,4 @@
-/* 
+/*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
@@ -10,7 +10,7 @@ var httpRequestRunes = new XMLHttpRequest();
 var httpRequestItems = new XMLHttpRequest();
 var httpRequestChamps = new XMLHttpRequest();
 var httpRequestSummoners = new XMLHttpRequest();
-var champSelected = "Anivia";
+var champSelected = "Ahri";
 var urlBase = "http://ddragon.leagueoflegends.com/cdn/";
 var version = "6.14.1";
 var language = "/data/es_MX/";
@@ -72,7 +72,7 @@ jQuery(document).ready(function ($) {
     httpRequestItems.send();
     httpRequestSummoners.send();
 
-    window.getTypeObj = function(type) {
+    window.getTypeObj = function (type) {
         if (type === "items")
             return itemsObj;
         else if (type === "champions")

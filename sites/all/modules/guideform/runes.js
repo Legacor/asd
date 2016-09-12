@@ -1,4 +1,4 @@
-/* 
+/*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
@@ -31,7 +31,10 @@ jQuery(document).ready(function ($) {
     httpRequestChamp.onreadystatechange = function () {
         if (httpRequestChamp.readyState === 4 && httpRequestChamp.status === 200) {
             champObj = JSON.parse(httpRequestChamp.responseText);
-    }
+            createSkills("field_skills_1");
+            createSkills("field_skills_2");
+
+        }
     };
     httpRequestItems.onreadystatechange = function () {
         if (httpRequestItems.readyState === 4 && httpRequestItems.status === 200) {
@@ -96,6 +99,7 @@ jQuery(document).ready(function ($) {
 
 
 
+
     $('.modal-body').on('click', '.itemIcon', function () {
         var text = $(this).data("id");
         var textInsert = "[item/" + text + "]";
@@ -103,8 +107,9 @@ jQuery(document).ready(function ($) {
     });
     $('.modal-body').on('click', '.champIcon', function () {
         var text = $(this).data("id");
-        var textInsert = "[champion/" + text + "]";
-        insertText(textInsert);
+        // var textInsert = "[champion/" + text + "]";
+        var textvar = "[champion/" + text + "]";
+        insertText(textvar);
     });
     $('.modal-body').on('click', '.summIcon', function () {
         var text = $(this).data("id");
@@ -113,23 +118,27 @@ jQuery(document).ready(function ($) {
         insertText(textInsert);
     });
 
-    $('#box').keyup(function () {
+    $('#modal-box').keyup(function () {
         var valThis = this.value.toLowerCase();
         $('.modalImgsContainer>div').each(function (i) {
             var text = $(this).data("name");
-            console.log("text: " + text);
+            // console.log("text: " + text);
             var textL = text.toLowerCase();
             (textL.indexOf(valThis) >= 0) ? $(this).fadeIn(500) : $(this).fadeOut((i * 2.8) + 100);
             //(textL.indexOf(valThis) >= 0) ? $(this).fadeIn(500) : $(this).fadeOut((i*4)+70);
         });
 
     });
+
+
+
+
     function clearModalBody() {
         var $modalBody = $(".modal-body>div").first();
         if ($modalBody.children().first().length) { //si el modal-body tiene hijos
             $(".modal-body>div").empty();
         }
-        $('#box').val('');
+        $('#modal-box').val('');
     }
 
     function clearDropdownForItems(parent, typeOfItems) { //checkea si el dropdownforitems tiene hijos
@@ -138,33 +147,6 @@ jQuery(document).ready(function ($) {
         var dropdownBody = document.getElementById(parent).children[index].children[0];
         dropdownBody.innerHTML = '';
     }
-
-    var wrap = $("#wrap");
-//
-//    wrap.on("scroll", function (e) {
-//
-//        if (this.scrollTop > 147) {
-//            wrap.addClass("fix-search");
-//        } else {
-//            wrap.removeClass("fix-search");
-//        }
-//
-//    });
-    wrap.bind("scroll", function (){
-       console.log("probando scrolling"); 
-    });
-    
-       $(document).on("scroll", debounce(function(e) {
-        if ($(window).scrollTop() > 200) {
-            console.log("llegue a mi limite!");
-            wrap.addClass("fix-search");
-        } else {
-            wrap.removeClass("fix-search");
-        }
-        console.log("me escrollearon!");
-
-    },50));
-
 
 
 
@@ -233,7 +215,73 @@ jQuery(document).ready(function ($) {
         else if (type === "summoners")
             return summObj;
     }
-    ;
+
+
+
+//*******************************CHAMPION SELECTION SECTION *******************************************************
+
+
+    $("#championSelContainer").on('focus', '#champSelBox', function () {
+        loadSelectionChamps();
+    });
+
+    function loadSelectionChamps() {
+        var datas = champsObj.data;
+        var dropdownBody = document.getElementsByClassName("ddForChamps")[0].children[0];
+        dropdownBody.innerHTML = '';
+        for (var i in datas) {
+            var champIcon = loadImgIcon(i, "champIcon champSelective", "champions");
+            document.getElementsByClassName("ddForChamps")[0].children[0].appendChild(champIcon);
+        }
+    }
+
+    $("#champSelBox").keyup(function () {
+        var isExpanded = $(this).attr("aria-expanded").toString();
+        if (isExpanded === "true") {
+            console.log("estoy expandded");
+        } else {
+            $('input.dropdown-toggle').dropdown("toggle");
+            loadSelectionChamps();
+        }
+        var valThis = this.value.toLowerCase();
+        $('#champSelImgContainer>div').each(function (i) {
+            var text = $(this).data("name");
+            var textL = text.toLowerCase();
+            (textL.indexOf(valThis) >= 0) ? $(this).fadeIn(500) : $(this).fadeOut((i * 2.8) + 100);
+        });
+    });
+
+    $("#champSelImgContainer").on("click", ".champSelective", function () {
+        champSelected = $(this).data("id");
+        urlChamp = urlBase + version + language + "/champion/" + champSelected + ".json";
+        var urlChampImg = urlBase + version + "/img/champion/" + champSelected + ".png";
+        httpRequestChamp.open("GET", urlChamp, true);
+        httpRequestChamp.send();
+        var champName = $(this).data("name");
+        $("#champSelBox").val(champName);
+        $("#championSelInput").val(champSelected);
+        $("#championSelFrame").empty();
+        $("#championSelFrame").append("<img src=\"" + urlChampImg + "\" id=\"championSelImg\"> ");
+
+    });
+
+    $("#championSelFrame").on('contextmenu', "#championSelImg", function (e) {
+        e.preventDefault();
+        $("#champSelBox").val("");
+        $("#championSelFrame").empty();
+        $("#championSelInput").val("");
+    });
+
+
+
+    //*******************************CHAMPION SELECTION SECTION *******************************************************
+
+
+
+
+
+
+
 
 
 
@@ -340,9 +388,92 @@ jQuery(document).ready(function ($) {
         $(this).addClass("skillActive");
     });
 
-    window.createSkills = function (containerID) {
+    $(".skillsContainer").on("contextmenu", ".skillActive", function (e) {
+        e.preventDefault();
+        var skillsContainer = $(this).parents(".skillsContainer");
+        var fieldSkillsContainer = skillsContainer.next();
+        var id = $(this).data("id").toString();
+        var idValue = $(this).data("value").toString();
+        updateGuideField(fieldSkillsContainer, id, "0", "skill", "");
+        $(this).removeClass("skillActive");
+        $(this).addClass("skillInactive");
+    });
+
+    function loadSelectedSkills(parentID, fieldInfo) { //containerID se refiere al contenedor donde se cargarán los selected skills
+        var myContainer = document.getElementById(parentID);
+        myContainer.innerHTML = "";
         var table = document.createElement("table");
         var tableRow, tableData, tableDataText, tdLetter, tdIcon, tdText;
+        //var fieldInfo = document.getElementById(fieldID).value;
+
+        var fieldInfoArray, skillID, skillValue, currentStr;
+        var $fieldOfSkills = $("#" + parentID).next();
+        var actualFieldValue = $fieldOfSkills.val();
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            fieldInfo = actualFieldValue;
+        }
+        fieldInfoArray = fieldInfo.split(",");
+        var rowsSkills = [];
+        var rows = ["Q", "W", "E", "R"];
+        var nums = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18"];
+        var rowVal;
+        for (var i = 0; i < 4; i++) {
+            rowVal = rows[i];
+            for (var x = 0; x < fieldInfoArray.length; x++) { //ciclo que recorre el field de los skills
+                currentStr = fieldInfoArray[x].toString();
+                skillValue = currentStr.charAt(3);
+                if (skillValue === rowVal) { //se obtienen los id que tienen un valor igual a este row
+                    skillID = fieldInfoArray[x].toString();
+                    rowsSkills.push(skillID); // se pushean los id de los niveles en que se sube esta skill i.e. "E" => [1,4,5]
+                    console.log("me pushearon");
+                }
+            }
+            tableRow = document.createElement("tr");
+            tdLetter = document.createElement("td");
+            tdIcon = document.createElement("td");
+            tdText = document.createElement("td");
+            tdLetter.setAttribute("class", "letter");
+            tdIcon.setAttribute("class", "skillIcon");
+            tdText.setAttribute("class", "skillText");
+            tdLetter.innerHTML = rows[i];
+            tableRow.appendChild(tdLetter);
+            tableRow.appendChild(tdIcon);
+            tableRow.appendChild(tdText);
+            for (var z = 1; z < 19; z++) { //ciclo que crea los 18 div's para los niveles
+                tableData = document.createElement("td");
+                tableData.setAttribute("class", "skillInactive");
+                for (var k = 0; k < rowsSkills.length; k++) {
+                    if (parseInt(rowsSkills[k], 10) === z) {
+                        tableData.setAttribute("class", "skillActive");
+                    }
+                }
+
+                tableData.setAttribute("data-id", nums[z - 1]);
+                tableData.setAttribute("data-value", rows[i]);
+                tableDataText = document.createTextNode(z.toString());
+                tableData.appendChild(tableDataText);
+                tableRow.appendChild(tableData);
+            }
+            rowsSkills = [];
+            table.appendChild(tableRow);
+        }
+        document.getElementById(parentID).appendChild(table);
+        loadChampSkills(parentID);
+    }
+
+    window.createSkills = function (containerID) {
+        var myContainer = document.getElementById(containerID);
+        var $fieldOfSkills = $("#" + containerID).next();
+        var actualFieldValue = $fieldOfSkills.val();
+        myContainer.innerHTML = '';
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            console.log("entre o ni siquiera");
+            loadSelectedSkills(containerID, actualFieldValue);
+            return;
+        }
+        var table = document.createElement("table");
+        var tableRow, tableData, tableDataText, tdLetter, tdIcon, tdText;
+        //   var fieldInfoArray = fieldInfo.split(",");
         var rows = ["Q", "W", "E", "R"];
         var nums = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18"];
         for (var i = 0; i < 4; i++) { //ciclo que crea las 4 rows
@@ -396,17 +527,107 @@ jQuery(document).ready(function ($) {
     }
 
 
+    window.loadChampion = function (parentID, champion) {
+        console.log("por lo menos me llaman");
+        var $fieldOfChamp = $("#championSelInput");
+        var actualFieldValue = $fieldOfChamp.val();
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            champion = actualFieldValue;
+        }
+        champSelected = champion;
+        urlChamp = urlBase + version + language + "/champion/" + champion + ".json";
+        var urlChampImg = urlBase + version + "/img/champion/" + champion + ".png";
+        httpRequestChamp.open("GET", urlChamp, false);
+        httpRequestChamp.send();
+        var name = champObj.data[champSelected].name;
+        var champName = name.toString();
+        $("#champSelBox").val(champName);
+        $("#championSelInput").val(champion);
+        $("#championSelFrame").empty();
+        $("#championSelFrame").append("<img src=\"" + urlChampImg + "\" id=\"championSelImg\"> ");
+    };
+
+    window.loadPresavedRunes = function (parentID, runesValues) {
+        var $fieldOfRunes = $("#" + parentID).next();
+        var actualFieldValue = $fieldOfRunes.val();
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            runesValues = actualFieldValue;
+        }
+        var valuesArray = runesValues.split(",");
+        var runes = ["n", "r", "y", "b"];
+        for (var i = 0; i < runes.length; i++) {
+            for (var j = 0; j < valuesArray.length; j++) {
+                var currentStr = valuesArray[j].toString();
+                var color = currentStr.charAt(7);
+                if (color === runes[i]) {
+                    var runeID = currentStr.substring(0, 4);
+                    var qty = currentStr.charAt(5);
+                    runeDivCreator(parentID, runeID, true, qty);
+                }
+
+            }
+        }
+
+    };
+
+    window.loadPresavedItems = function (parentID, typeOfItems, itemsValues) {
+        var $fieldOfItems = $("#" + parentID).next();
+        var actualFieldValue = $fieldOfItems.val();
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            itemsValues = actualFieldValue;
+        }
+        var valuesArray = itemsValues.split(",");
+        var fullItemsContainer = document.getElementById(parentID);
+        var valuesArraySize = valuesArray.length;
+        var trinketID;
+        for (var i = 0; i < valuesArraySize - 1; i++) {
+            var id = valuesArray[i];
+            if (typeOfItems === "starting") { //condiciones para
+                if (id === "3340" || id === "3341") {
+                    trinketID = id;
+                    continue;
+                }
+            } else {
+                if (id === "3340" || id === "3363" || id === "3364") {
+                    trinketID = id;
+                    continue;
+                }
+            }
+            var itemIcon = loadImgIcon(id, "itemIcon itemSelective", "items");
+            document.getElementById(parentID).children[i].appendChild(itemIcon);
+        }
+        var itemIcon = loadImgIcon(trinketID, "itemIcon itemSelective", "items");
+        document.getElementById(parentID).children[i - 1].appendChild(itemIcon);
+    };
+
+    window.loadPresavedSpells = function (parentID, spellsValues) {
+        //var itemsValues = document.getElementById("spellsInput").value.toString();
+        var $fieldOfSpells = $("#" + parentID).next();
+        var actualFieldValue = $fieldOfSpells.val();
+        if (actualFieldValue !== "" && actualFieldValue !== undefined) {
+            spellsValues = actualFieldValue;
+        }
+        var valuesArray = spellsValues.split(",");
+        for (var i = 0; i < 2; i++) {
+            var id = valuesArray[i];
+            var itemIcon = loadImgIcon(id, "summIcon", "summoners");
+            document.getElementById(parentID).children[i].appendChild(itemIcon);
+        }
+    };
+
+
     function runeDivCreatorAuto(idParent, runesPrinc, runesSecund) {
         runeDivRemover(idParent);
         for (var i = 0; i < runesPrinc.length; i++) {
-            runeDivCreator(idParent, runesPrinc[i]);
+            runeDivCreator(idParent, runesPrinc[i], false, 0);
         }
         for (var j = 0; j < runesSecund.length; j++) {
-            runeDivCreator(idParent, runesSecund[j]);
+            runeDivCreator(idParent, runesSecund[j], false, 0);
         }
     }
 
-    function runeDivCreator(idParent, id) {
+    function runeDivCreator(idParent, id, isChosen, qty) {
+        console.log("soy parent:" + idParent + "soy id:" + id + "soy qty:" + qty + "soy chosen:" + isChosen);
         var runeName = myRunesObj.data[id].name;
         var runeDescription = myRunesObj.data[id].description;
         var xPos = (myRunesObj.data[id].image.x) / 48;
@@ -427,18 +648,34 @@ jQuery(document).ready(function ($) {
         runeTypeInfo.setAttribute("class", "runeTypeInfo");
         runeTypeInfo.setAttribute("data-id", id);
         runeTypeInfo.setAttribute("data-type", type);
+        runeTypeInfo.setAttribute("data-qty", qty);
         runeTypeIcon.setAttribute("class", "runeTypeIcon");
         runeTypeImg.setAttribute("class", "runeTypeImg");
         runeTypeImg.setAttribute("style", "background: url('/assets/Images/runes.png') " + stringX + " " + stringY + " no-repeat;");
+        runeTypeTextDescript.setAttribute("class", "runeDesc");
+        runeTypeTextDescript.setAttribute("title", runeDescription);
         runeTypeText.setAttribute("class", "runeTypeText");
         runeTypeTextName.appendChild(runeTypeTextNameNode);
         runeTypeTextDescript.appendChild(runeTypeTextDescriptNode);
+        if (isChosen) {
+            var runeTypeCounter = document.createElement("div");
+            runeTypeCounter.setAttribute("class", "runeTypeCounter");
+            runeTypeCounter.innerHTML = qty;
+            runeTypeIcon.appendChild(runeTypeCounter);
+            runeTypeImg.style.position = "absolute";
+            runeTypeImg.style.left = "25px";
+            runeTypeInfo.setAttribute("class", "runeTypeInfo locked-rune");
+        }
         runeTypeText.appendChild(runeTypeTextName);
         runeTypeText.appendChild(runeTypeTextDescript);
         runeTypeIcon.appendChild(runeTypeImg);
         runeTypeInfo.appendChild(runeTypeIcon);
         runeTypeInfo.appendChild(runeTypeText);
-        document.getElementById(idParent).children[1].appendChild(runeTypeInfo);
+        if (isChosen) {
+            document.getElementById(idParent).children[2].appendChild(runeTypeInfo);
+        } else {
+            document.getElementById(idParent).children[1].appendChild(runeTypeInfo);
+        }
     }
 
 
@@ -486,8 +723,10 @@ jQuery(document).ready(function ($) {
                 var runesField = runesContainer.next();
                 updateGuideField(runesField, currentRuneID, 1, "rune", color);
                 $(this).clone().addClass("locked-rune").attr("data-qty", "1").appendTo(runesChosen);
+                runesChosen.find(".runeTypeImg").css("position", "absolute");
+                runesChosen.find(".runeTypeImg").css("left", "25px");
                 runesChosen.children().last().children().first().prepend('<div class="runeTypeCounter">1</div'); //agrega "1" en runeInfo->runeIcon
-                //clona y mueve runa a sección de elegidas por usuario 
+                //clona y mueve runa a sección de elegidas por usuario
             } else { //si se puede agregar pero se alcanzó cantidad máxima de runas por tipo
                 return;
             }
@@ -567,9 +806,200 @@ jQuery(document).ready(function ($) {
             }
         });
     }
+
+    window.loadChampsPls = function () {
+        var champData = champsObj.data;
+        var myString = "[";
+        for (var i in champData) {
+            var name = champData[i].name;
+            myString += "\"" + i + "\",";
+        }
+        myString += "]";
+        console.log(myString);
+    };
+
+
+
+    //*************************************************GUIDES NAVIGATION******************************************//
+
+
+
+    $("#panel-navigation nav ul li").click(function () {
+        clearGuideNav();
+//        $(this).parent().children().each(function () {
+//            if ($(this).hasClass("active")) {
+//                $(this).removeClass("active");
+//            }
+//        });
+        $(this).addClass("active");
+    });
+
+
+    function clearGuideNav() {
+        $("#panel-navigation").find("ul").children().each(function () {
+            if ($(this).hasClass("active")) {
+                $(this).removeClass("active");
+            }
+        });
+    }
+
+    $('a[href^="#"]').on('click', function (event) {
+        var target = $(this.getAttribute('href'));
+        if (target.length) {
+            event.preventDefault();
+            $('html, body').stop().animate({
+                scrollTop: target.offset().top - 70
+            }, 1000);
+        }
+    });
+
+//    function loadWaypoints() {
+//        var elementsArray = ["sectionmasteries", "sectionrunes", "sectionintro", "sectionspells", "sectionstarting", "sectionfull", "sectionskills", "sectionearly", "sectionmid", "sectionlate"];
+//        var anchorsArray = ["anchorMasteries", "anchorRunes", "anchorIntro", "anchorSpells", "anchorStarting", "anchorFull", "anchorSkills", "anchorEarly", "anchorMid", "anchorLate"];
+//        var waypoints = [];
+//        for (var i = 0; i < 9; i++) {
+//            console.log("soy i:" + i.toString());
+//            waypoints[i] = new Waypoint({
+//                element: document.getElementById(elementsArray[i].toString()),
+//                handler: function (direction) {
+//                    clearGuideNav();
+//                    console.log("no creo:" + anchorsArray[i].toString());
+//                    console.log("yo si:" + elementsArray[i].toString());
+//                    $("#" + anchorsArray[i]).addClass("active");
+//                }
+//            });
+//        }
+//    }
+//
+//    loadWaypoints();
+
+//
+
+    var waypointMasteries = new Waypoint({
+        element: document.getElementById('sectionmasteries'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorMasteries').addClass("active");
+        },
+        offset: 70
+    })
+
+    var waypointRunes = new Waypoint({
+        element: document.getElementById('sectionrunes'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorRunes').addClass("active");
+        },
+        offset: 40
+    })
+
+    var waypointIntro = new Waypoint({
+        element: document.getElementById('sectionintro'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorIntro').addClass("active");
+        },
+        offset: 70
+    })
+    var waypointSpells = new Waypoint({
+        element: document.getElementById('sectionspells'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorSpells').addClass("active");
+        },
+        offset: 70
+    })
+    var waypointStarting = new Waypoint({
+        element: document.getElementById('sectionstarting'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorStarting').addClass("active");
+        },
+        offset: 70
+    })
+    var waypointFull = new Waypoint({
+        element: document.getElementById('sectionfull'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorFull').addClass("active");
+        },
+        offset: 70
+    })
+    var waypointSkills = new Waypoint({
+        element: document.getElementById('sectionskills'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorSkills').addClass("active");
+        },
+        offset: 70
+    })
+    var waypointEarly = new Waypoint({
+        element: document.getElementById('sectionearly'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorEarly').addClass("active");
+        },
+        offset: 70
+    })
+
+    var waypointMid = new Waypoint({
+        element: document.getElementById('sectionmid'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorMid').addClass("active");
+        },
+        offset: 70
+    })
+
+    var waypointLate = new Waypoint({
+        element: document.getElementById('sectionlate'),
+        handler: function (direction) {
+            clearGuideNav();
+            $('#anchorLate').addClass("active");
+        },
+        offset: 70
+    })
+
+
+
+
+//***************************************************SCROLLING*********************************************************
+
+    var wrap = $("#wrap");
+    $("#panel-navigation").children().hide();
+//
+//    wrap.on("scroll", function (e) {
+//
+//        if (this.scrollTop > 147) {
+//            wrap.addClass("fix-search");
+//        } else {
+//            wrap.removeClass("fix-search");
+//        }
+//
+//    });
+
+//$(window).on("hashchange", function () { //metodo para desplazar el scroll mas hacia arriba, cuando se hace click en navegacion de guia
+//    window.scrollTo(window.scrollX, window.scrollY - 100); //esto para evitar que el fixed header no permita la correcta visualizacion
+//});
+
+    $(document).on("scroll", debounce(function (e) {
+        var $panelNav = $("#panel-navigation").children();
+        if ($(window).scrollTop() > 200) {
+            $panelNav.show();
+            wrap.addClass("fix-search");
+        } else {
+            $panelNav.hide();
+            wrap.removeClass("fix-search");
+        }
+    }, 50));
+
+
+//***************************************************SCROLLING*********************************************************
+
+
+
+
 });
-
-
 
 
 

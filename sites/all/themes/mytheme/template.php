@@ -6,6 +6,10 @@ function mytheme_preprocess_page(&$vars) {
   if (isset($vars['node']->type)) {
     $vars['theme_hook_suggestions'][] = 'page__' . $vars['node']->type;
   }
+  if (!empty($vars['node']) && arg(2) == 'edit') {
+    $vars['theme_hook_suggestions'][] = 'page__node__' . $vars['node']->type .'__edit';
+  }
+ 
 }
 
 function mytheme_theme() {

@@ -1,0 +1,22 @@
+/*.rate-thumbs-up-btn-up {
+  display: inline-block;
+  background: url(../thumbs-up-down/thumbs.png) no-repeat 0 0; 
+  width: 24px;
+  height: 24px;
+  text-indent: -9999px;
+} */
+
+
+.rate-thumbs-up-btn-up {
+  display: inline-block;
+  overflow: hidden;
+  cursor: pointer;
+  background: url("http://i.stack.imgur.com/iqN2k.png") no-repeat 0 -25px;
+  width: 40px;
+  height: 25px;
+  text-indent: -9999px;
+}
+
+.rate-thumbs-up-btn-up.active{
+ background-position: 0 2px;
+}

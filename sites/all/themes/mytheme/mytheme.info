@@ -25,3 +25,4 @@ regions[page_bottom]    = 'Page bottom'
 ;;;;;;;;;;;;;;;;;;;;;
 
 stylesheets[all][] = css/style.css
+stylesheets[all][] = css/general.css

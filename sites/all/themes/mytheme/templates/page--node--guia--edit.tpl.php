@@ -125,12 +125,6 @@
 
   <div class="row">
 
-    <?php if (!empty($page['sidebar_first'])): ?>
-      <aside class="col-sm-3" role="complementary">
-        <?php print render($page['sidebar_first']); ?>
-      </aside>  <!-- /#sidebar-first -->
-    <?php endif; ?>
-
     <section<?php print $content_column_class; ?> id="wrap">
       <?php if (!empty($page['highlighted'])): ?>
         <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
@@ -152,8 +146,27 @@
       <?php if (!empty($action_links)): ?>
         <ul class="action-links"><?php print render($action_links); ?></ul>
       <?php endif; ?>
-	  <header class="top-header">
-                <span class="menu-icon">☰</span>
+      <header class="top-header">
+          <span class="menu-icon">☰</span>
+      </header>
+ 	   <header id="top-right-header">
+	   <div id="panel-navigation">
+	   	<nav>
+       <ul class="dashed">
+         <li id="anchorIntro"><a href="#sectionintro">Introducción</a></li>
+         <li id="anchorEarly"><a href="#sectionearly">Early game</a></li>
+         <li id="anchorMid"><a href="#sectionmid">Mid game</a></li>
+         <li id="anchorLate"><a href="#sectionlate">Late game</a> </li>
+         <li id="anchorMasteries"> <a href="#sectionmasteries">Maestrías</a></li>
+         <li id="anchorRunes"><a href="#sectionrunes">Runas</a></li>
+         <li id="anchorSkills"> <a href="#sectionskills">Habilidades</a></li>
+         <li id="anchorSpells"><a href="#sectionspells">Hechizos</a></li>
+         <li id="anchorStarting"><a href="#sectionstarting">Items inciales</a></li>
+         <li id="anchorFull"> <a href="#sectionfull">Full Items</a></li>
+
+       </ul>
+     </nav>
+	    </div>
             </header>
             <div class="search">
                 <button type="button" class="btn btn-info btn-sm" onclick="loadItemsImages()" data-toggle="modal" data-target="#myModal">Items</button>
@@ -162,14 +175,14 @@
             </div>
             <div class="top">
             </div>
-			<div id="myModal" class="modal fade" role="dialog">
+	    <div id="myModal" class="modal fade" role="dialog">
                 <div class="modal-dialog">
 
                     <!-- Modal content-->
                     <div class="modal-content">
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal">&times;</button>
-                            <h4 class="modal-title"><input placeholder="buscar..." id="box" type="text" /></h4>
+                            <h4 class="modal-title"><input placeholder="buscar..." id="modal-box" type="text" /></h4>
                         </div>
                         <div class="modal-body">
                             <!-- <input style="margin-bottom: 10px;" placeholder="buscar..." id="box" type="text" /> -->
@@ -184,7 +197,7 @@
                 </div>
             </div>
       <?php print render($page['content']); ?>
-	  
+
     </section>
 
     <?php if (!empty($page['sidebar_second'])): ?>
